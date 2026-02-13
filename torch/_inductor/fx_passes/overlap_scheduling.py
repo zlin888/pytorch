@@ -697,15 +697,15 @@ class OverlapScheduler:
             compute_key_count += 1
 
         # Log compute estimations
-        from torch._inductor.fx_passes.node_runtime_estimation import (
-            _log_compute_estimations,
-        )
+        # from torch._inductor.fx_passes.node_runtime_estimation import (
+        #     _log_compute_estimations,
+        # )
 
-        _log_compute_estimations(
-            self.compute_nodes,
-            runtime_estimations,
-            runtime_estimations_analytical,
-        )
+        # _log_compute_estimations(
+        #     self.compute_nodes,
+        #     runtime_estimations,
+        #     runtime_estimations_analytical,
+        # )
 
         # Benchmark collectives if enabled (only CUDA events - others are deterministic)
         # Skip if custom estimation is provided for collectives
