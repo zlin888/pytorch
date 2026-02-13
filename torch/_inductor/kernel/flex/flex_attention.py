@@ -155,6 +155,9 @@ def flex_attention(
         q_indices,
         full_q_num_blocks,
         full_q_indices,
+        _,  # dq_write_order (backward-only)
+        _,  # dq_write_order_full (backward-only)
+        _,  # dq_write_order_spt (backward-only)
         SPARSE_Q_BLOCK_SIZE,
         SPARSE_KV_BLOCK_SIZE,
         mask_graph,
@@ -642,6 +645,9 @@ def flex_attention_backward(*args, **kwargs):
         q_indices,
         full_q_num_blocks,
         full_q_indices,
+        dq_write_order,
+        dq_write_order_full,
+        dq_write_order_spt,
         SPARSE_Q_BLOCK_SIZE,
         SPARSE_KV_BLOCK_SIZE,
         mask_graph,
@@ -661,6 +667,8 @@ def flex_attention_backward(*args, **kwargs):
         q_indices,
         full_q_num_blocks,
         full_q_indices,
+        dq_write_order,
+        dq_write_order_full,
     ) = maybe_realize(
         [
             query,
@@ -676,6 +684,8 @@ def flex_attention_backward(*args, **kwargs):
             q_indices,
             full_q_num_blocks,
             full_q_indices,
+            dq_write_order,
+            dq_write_order_full,
         ]
     )
 
@@ -772,11 +782,14 @@ def flex_attention_backward(*args, **kwargs):
             and not torch.is_deterministic_algorithms_warn_only_enabled()
             and needs_block_mask
         ):
-            raise NotImplementedError(
-                "Deterministic backward for flex_attention with block_mask using the FLASH backend "
-                "is not yet implemented. The TRITON backend supports deterministic backward."
-            )
-        #todo i think we need structure the warning better
+            major, _ = torch.cuda.get_device_capability(device)
+            if major < 10:
+                raise NotImplementedError(
+                    "Deterministic backward for flex_attention with block_mask using the FLASH backend "
+                    "requires SM100+ (compute capability >= 10.0). "
+                    "The TRITON backend supports deterministic backward on older architectures."
+                )
+        # todo i think we need structure the warning better
         if torch.is_deterministic_algorithms_warn_only_enabled() and needs_block_mask:
             warnings.warn(
                 "Deterministic backward for flex_attention with block_mask using the FLASH backend "
@@ -813,6 +826,9 @@ def flex_attention_backward(*args, **kwargs):
             q_indices=q_indices if needs_block_mask else None,
             full_q_num_blocks=full_q_num_blocks if needs_block_mask else None,
             full_q_indices=full_q_indices if needs_block_mask else None,
+            dq_write_order=dq_write_order if needs_block_mask else None,
+            dq_write_order_full=dq_write_order_full if needs_block_mask else None,
+            dq_write_order_spt=dq_write_order_spt,
         )
 
     # Construct layout with stride order matching K
